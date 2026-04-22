@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TimeOff — Leave Request Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE6;
+    --border: #E2DDD4;
+    --text: #1A1815;
+    --muted: #7A746A;
+    --accent: #2D5016;
+    --accent-light: #EBF2E1;
+    --amber: #C17B2A;
+    --amber-light: #FBF3E3;
+    --red: #B83232;
+    --red-light: #FCEAEA;
+    --green: #2D6E2D;
+    --green-light: #E6F5E6;
+    --purple: #4A2E8C;
+    --purple-light: #EDE8F9;
+    --radius: 12px;
+    --radius-sm: 7px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--accent);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .logo span { font-style: italic; color: #A8D06E; }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .cap-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 100px;
+    padding: 4px 12px;
+    color: #fff;
+    font-size: 13px;
+  }
+  .cap-btn {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: none;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .cap-btn:hover { background: rgba(255,255,255,0.15); }
+  #cap-display { font-weight: 600; min-width: 14px; text-align: center; }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .sidebar-section {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-section:last-child { border-bottom: none; }
+  .section-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  /* Form */
+  .form-group { margin-bottom: 12px; }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--accent);
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 11px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 4px;
+  }
+  .submit-btn:hover { background: #3A6920; }
+  .submit-btn:active { transform: scale(0.98); }
+
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* Log */
+  .log-list { display: flex; flex-direction: column; gap: 0; }
+  .log-entry {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: slideIn 0.25s ease;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--purple-light);
+    color: var(--purple);
+    font-size: 11px;
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .log-name { font-size: 13px; font-weight: 500; }
+  .log-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .log-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .log-empty {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    padding: 1.5rem 0;
+    font-style: italic;
+  }
+
+  /* ── Main (Calendar) ── */
+  .main {
+    padding: 2rem;
+    overflow-y: auto;
+  }
+  .cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .cal-month-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.75rem;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .cal-nav { display: flex; gap: 6px; }
+  .nav-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .nav-btn:hover { background: var(--surface2); }
+
+  /* Calendar grid */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .cal-day-name {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 0 8px;
+  }
+  .cal-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px;
+    min-height: 80px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .cal-cell:hover {
+    border-color: #b0aa9e;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .cal-cell.empty {
+    background: transparent;
+    border-color: transparent;
+    cursor: default;
+    box-shadow: none;
+  }
+  .cal-cell.today { border-color: var(--accent); }
+  .cal-cell.today .cell-num { color: var(--accent); font-weight: 600; }
+  .cal-cell.status-ok {
+    background: var(--green-light);
+    border-color: #B5D99B;
+  }
+  .cal-cell.status-near {
+    background: var(--amber-light);
+    border-color: #F0C97A;
+  }
+  .cal-cell.status-full {
+    background: var(--red-light);
+    border-color: #F0A8A8;
+  }
+  .cal-cell.selected {
+    box-shadow: 0 0 0 2px var(--accent);
+    border-color: var(--accent);
+  }
+  .cell-num {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+  .cell-bar {
+    margin-top: 8px;
+    height: 4px;
+    border-radius: 100px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .cell-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    background: var(--accent);
+    transition: width 0.3s ease;
+  }
+  .status-near .cell-bar-fill { background: var(--amber); }
+  .status-full .cell-bar-fill { background: var(--red); }
+  .cell-count {
+    font-size: 11px;
+    margin-top: 6px;
+    color: var(--muted);
+  }
+  .status-ok .cell-count { color: var(--green); }
+  .status-near .cell-count { color: var(--amber); }
+  .status-full .cell-count { color: var(--red); font-weight: 500; }
+  .cell-names {
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cell-name-chip {
+    font-size: 10px;
+    background: rgba(0,0,0,0.05);
+    padding: 1px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+  .status-ok .cell-name-chip { background: rgba(45,110,45,0.1); color: var(--green); }
+  .status-near .cell-name-chip { background: rgba(193,123,42,0.12); color: var(--amber); }
+  .status-full .cell-name-chip { background: rgba(184,50,50,0.1); color: var(--red); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+
+  /* Detail panel */
+  .detail-panel {
+    margin-top: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    display: none;
+    animation: fadeUp 0.2s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .detail-panel.visible { display: block; }
+  .detail-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .detail-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--muted);
+    line-height: 1;
+  }
+  .detail-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-info .name { font-size: 14px; font-weight: 500; }
+  .detail-info .meta { font-size: 12px; color: var(--muted); }
+  .badge {
+    margin-left: auto;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-approved { background: var(--green-light); color: var(--green); }
+  .badge-full { background: var(--red-light); color: var(--red); }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--text);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 200;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  #toast.error { background: var(--red); }
+
+  /* Responsive */
+  @media (max-width: 780px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    .main { padding: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Time<span>Off</span></div>
+  <div class="header-right">
+    <div class="cap-control">
+      <button class="cap-btn" onclick="adjustCap(-1)">−</button>
+      <span>Max/day:</span>
+      <span id="cap-display">3</span>
+      <button class="cap-btn" onclick="adjustCap(1)">+</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="section-title">Submit Request</div>
+      <div class="form-group">
+        <label>Employee name</label>
+        <input type="text" id="f-name" placeholder="e.g. Priya Sharma" />
+      </div>
+      <div class="form-group">
+        <label>Department</label>
+        <input type="text" id="f-dept" placeholder="e.g. Engineering" />
+      </div>
+      <div class="form-group">
+        <label>From</label>
+        <input type="date" id="f-start" />
+      </div>
+      <div class="form-group">
+        <label>To</label>
+        <input type="date" id="f-end" />
+      </div>
+      <button class="submit-btn" onclick="submitRequest()">Submit Request →</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">Overview</div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-num" id="stat-total">0</div>
+          <div class="stat-label">Requests</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="stat-full">0</div>
+          <div class="stat-label">Days full</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="stat-people">0</div>
+          <div class="stat-label">People</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="stat-cap2">3</div>
+          <div class="stat-label">Max/day</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="flex:1;">
+      <div class="section-title">Recent Log</div>
+      <div class="log-list" id="log-list">
+        <div class="log-empty">No requests yet.</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Main Calendar -->
+  <main class="main">
+    <div class="cal-header">
+      <div class="cal-month-title" id="cal-title">April 2026</div>
+      <div class="cal-nav">
+        <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+        <button class="nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+    </div>
+
+    <div class="cal-grid" id="cal-daynames"></div>
+    <div class="cal-grid" id="cal-cells"></div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--green-light);border-color:#B5D99B;"></div> Available
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--amber-light);border-color:#F0C97A;"></div> ≥50% full
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--red-light);border-color:#F0A8A8;"></div> At capacity
+      </div>
+    </div>
+
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-title">
+        <span id="detail-date-title">—</span>
+        <button class="detail-close" onclick="closeDetail()">×</button>
+      </div>
+      <div id="detail-rows"></div>
+    </div>
+  </main>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let requests = [];
+  let capacity = 3;
+  let calYear = new Date().getFullYear();
+  let calMonth = new Date().getMonth();
+  let selectedDate = null;
+
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today = new Date().toISOString().split('T')[0];
+
+  // Init date inputs
+  document.getElementById('f-start').value = today;
+  document.getElementById('f-end').value = today;
+
+  function adjustCap(d) {
+    capacity = Math.max(1, Math.min(20, capacity + d));
+    document.getElementById('cap-display').textContent = capacity;
+    document.getElementById('stat-cap2').textContent = capacity;
+    renderCal();
+    if (selectedDate) showDetail(selectedDate);
+  }
+
+  function getDates(start, end) {
+    const out = [];
+    let cur = new Date(start + 'T00:00:00');
+    const last = new Date(end + 'T00:00:00');
+    while (cur <= last) {
+      out.push(cur.toISOString().split('T')[0]);
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }
+
+  function countForDate(d) {
+    return requests.filter(r => r.dates.includes(d)).length;
+  }
+
+  function submitRequest() {
+    const name = document.getElementById('f-name').value.trim();
+    const dept = document.getElementById('f-dept').value.trim();
+    const start = document.getElementById('f-start').value;
+    const end = document.getElementById('f-end').value;
+
+    if (!name) { showToast('Please enter employee name.', true); return; }
+    if (!start || !end) { showToast('Please select dates.', true); return; }
+    if (end < start) { showToast('End date must be after start.', true); return; }
+
+    const dates = getDates(start, end);
+    const blocked = dates.filter(d => countForDate(d) >= capacity);
+    if (blocked.length) {
+      showToast('Blocked: ' + blocked.slice(0, 2).join(', ') + (blocked.length > 2 ? '…' : '') + ' at capacity.', true);
+      return;
+    }
+
+    const ts = new Date();
+    requests.unshift({
+      id: Date.now(),
+      name,
+      dept: dept || '—',
+      start,
+      end,
+      dates,
+      submitted: ts.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', ' +
+        ts.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    });
+
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-dept').value = '';
+    document.getElementById('f-start').value = today;
+    document.getElementById('f-end').value = today;
+
+    updateStats();
+    renderLog();
+    renderCal();
+    if (selectedDate && dates.includes(selectedDate)) showDetail(selectedDate);
+    showToast('Request submitted for ' + name + '!');
+  }
+
+  function updateStats() {
+    const people = new Set(requests.map(r => r.name)).size;
+    const allDates = {};
+    requests.forEach(r => r.dates.forEach(d => { allDates[d] = (allDates[d] || 0) + 1; }));
+    const full = Object.values(allDates).filter(v => v >= capacity).length;
+    document.getElementById('stat-total').textContent = requests.length;
+    document.getElementById('stat-people').textContent = people;
+    document.getElementById('stat-full').textContent = full;
+  }
+
+  function renderLog() {
+    const el = document.getElementById('log-list');
+    if (!requests.length) {
+      el.innerHTML = '<div class="log-empty">No requests yet.</div>';
+      return;
+    }
+    el.innerHTML = requests.slice(0, 20).map(r => `
+      <div class="log-entry">
+        <div class="avatar">${initials(r.name)}</div>
+        <div>
+          <div class="log-name">${r.name}</div>
+          <div class="log-meta">${r.dept} · ${r.start === r.end ? r.start : r.start + ' – ' + r.end}</div>
+          <div class="log-time">${r.submitted}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderCal() {
+    document.getElementById('cal-title').textContent = MONTHS[calMonth] + ' ' + calYear;
+
+    const namesEl = document.getElementById('cal-daynames');
+    namesEl.innerHTML = DAY_NAMES.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+
+    const cells = document.getElementById('cal-cells');
+    cells.innerHTML = '';
+
+    const first = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+    for (let i = 0; i < first; i++) {
+      const e = document.createElement('div');
+      e.className = 'cal-cell empty';
+      cells.appendChild(e);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const cnt = countForDate(dateStr);
+      const pct = cnt / capacity;
+
+      let statusClass = '';
+      if (cnt >= capacity) statusClass = 'status-full';
+      else if (pct >= 0.5) statusClass = 'status-near';
+      else if (cnt > 0) statusClass = 'status-ok';
+
+      const cell = document.createElement('div');
+      let classes = 'cal-cell' + (statusClass ? ' ' + statusClass : '');
+      if (dateStr === today) classes += ' today';
+      if (dateStr === selectedDate) classes += ' selected';
+      cell.className = classes;
+
+      const dayReqs = requests.filter(r => r.dates.includes(dateStr));
+      const nameChips = dayReqs.slice(0, 2).map(r =>
+        `<div class="cell-name-chip">${r.name.split(' ')[0]}</div>`
+      ).join('') + (dayReqs.length > 2 ? `<div class="cell-name-chip">+${dayReqs.length - 2}</div>` : '');
+
+      cell.innerHTML = `
+        <div class="cell-num">${d}</div>
+        ${cnt > 0 ? `
+          <div class="cell-bar"><div class="cell-bar-fill" style="width:${Math.min(100, Math.round(pct * 100))}%"></div></div>
+          <div class="cell-count">${cnt} / ${capacity}</div>
+          <div class="cell-names">${nameChips}</div>
+        ` : ''}
+      `;
+      cell.onclick = () => {
+        if (cnt === 0) { selectedDate = null; closeDetail(); return; }
+        selectedDate = dateStr;
+        renderCal();
+        showDetail(dateStr);
+      };
+      cells.appendChild(cell);
+    }
+  }
+
+  function showDetail(dateStr) {
+    const panel = document.getElementById('detail-panel');
+    const dayReqs = requests.filter(r => r.dates.includes(dateStr));
+    const cnt = dayReqs.length;
+    const isFull = cnt >= capacity;
+    const [y, m, d] = dateStr.split('-');
+    document.getElementById('detail-date-title').textContent =
+      `${MONTHS[parseInt(m) - 1]} ${parseInt(d)}, ${y} — ${cnt} of ${capacity} slots used`;
+    document.getElementById('detail-rows').innerHTML = dayReqs.map(r => `
+      <div class="detail-row">
+        <div class="avatar">${initials(r.name)}</div>
+        <div class="detail-info">
+          <div class="name">${r.name}</div>
+          <div class="meta">${r.dept} · ${r.start} – ${r.end} · submitted ${r.submitted}</div>
+        </div>
+        <span class="badge ${isFull ? 'badge-full' : 'badge-approved'}">${isFull ? 'At capacity' : 'Approved'}</span>
+      </div>`).join('');
+    panel.classList.add('visible');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function closeDetail() {
+    document.getElementById('detail-panel').classList.remove('visible');
+    selectedDate = null;
+    renderCal();
+  }
+
+  function changeMonth(d) {
+    calMonth += d;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    closeDetail();
+    renderCal();
+  }
+
+  function initials(name) {
+    return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  let toastTimer;
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'show' + (isError ? ' error' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.className = ''; }, 3000);
+  }
+
+  // Init
+  renderCal();
+</script>
+</body>
+</html>
